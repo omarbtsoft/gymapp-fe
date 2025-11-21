@@ -28,11 +28,3 @@ jobs:
           docker push $IMAGE
           docker tag $IMAGE ${{ steps.ecr.outputs.registry }}/gymapp-fe:latest
           docker push ${{ steps.ecr.outputs.registry }}/gymapp-fe:latest
-
-      - name: Notify infra
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.INFRA_REPO_PAT }}
-          repository: your-github-user/gymapp-infra
-          event-type: deploy
-          client-payload: '{"service":"frontend","version":"${{ github.ref_name }}"}'

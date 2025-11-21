@@ -1,0 +1,38 @@
+name: Build & Push Frontend Image
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & Push
+        run: |
+          IMAGE=${{ steps.ecr.outputs.registry }}/gymapp-fe:${{ github.ref_name }}
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          docker tag $IMAGE ${{ steps.ecr.outputs.registry }}/gymapp-fe:latest
+          docker push ${{ steps.ecr.outputs.registry }}/gymapp-fe:latest
+
+      - name: Notify infra
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.INFRA_REPO_PAT }}
+          repository: your-github-user/gymapp-infra
+          event-type: deploy
+          client-payload: '{"service":"frontend","version":"${{ github.ref_name }}"}'
